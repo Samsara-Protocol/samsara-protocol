@@ -21,7 +21,10 @@ contract Raffle {
 
     DrawRandomNumber public drawRandomNumber;
 
-    function Raffle
+    event LogTicketsPurchased(address indexed buyer, uint256 numberOfTickets, uint256 price, uint256 timestamp);
+    event LogWinner(address indexed winnerAddress, string typeOfWinning, uint256 timestamp);
+
+    constructor
         (
             uint256 _openTime,
             uint256 _closeTime,
@@ -79,6 +82,8 @@ contract Raffle {
             ticketHolders.push(msg.sender);
         }
 
+        emit LogTicketsPurchased(msg.sender, numberOfTickets, msg.value, now);
+
         //forward funds to escrow
         escrowWallet.transfer(msg.value);
     }
@@ -103,6 +108,7 @@ contract Raffle {
 
         // random number returns between 0 and ticketsSold - 1
         raffleWinner = ticketHolders[randomNumber];
+        emit LogWinner(raffleWinner, "Main Prize", now);
         isFinalized = true;
     }
 

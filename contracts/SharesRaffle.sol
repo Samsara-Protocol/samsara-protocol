@@ -28,7 +28,7 @@ contract SharesRaffle {
 
     DrawRandomNumber public drawRandomNumber;
 
-    function SharesRaffle
+    constructor
         (
             uint256 _openTime,
             uint256 _closeTime,

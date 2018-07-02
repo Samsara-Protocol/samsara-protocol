@@ -149,7 +149,21 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
         it('allows user to buy multiple ticket', async () => {
             await increaseTimeTo(latestTime() + duration.seconds(50));
 
-            await raffle.purchaseTickets(10, { value: ticketPrice * 10 });
+            const { logs } = await raffle.purchaseTickets(10, {
+                value: ticketPrice * 10,
+                from: buyer1
+            });
+
+            const event = logs.find(e => e.event === 'LogTicketsPurchased');
+            expect(event).to.exist;
+            const { args } = logs[0];
+            const { buyer } = args;
+            const { numberOfTickets } = args;
+            const { price } = args;
+
+            buyer.should.be.equal(buyer1);
+            numberOfTickets.should.be.bignumber.equal(10);
+            price.should.be.bignumber.equal(ticketPrice * 10);
 
             const tickets = await raffle.ticketsSold();
             tickets.should.be.bignumber.equal(10);
@@ -267,7 +281,16 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
 
             await increaseTimeTo(latestTime() + duration.days(65));
 
-            await raffle.requestRandomNumber();
+            const { logs } = await raffle.requestRandomNumber();
+
+            const event = logs.find(e => e.event === 'LogWinner');
+            expect(event).to.exist;
+            const { args } = logs[0];
+            const { winnerAddress } = args;
+            const { typeOfWinning } = args;
+
+            winnerAddress.should.be.equal(buyer2);
+            typeOfWinning.should.be.equal('Main Prize');
 
             const winner = await raffle.raffleWinner();
             winner.should.be.equal(buyer2);
