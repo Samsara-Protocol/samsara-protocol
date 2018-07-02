@@ -19,6 +19,7 @@ contract Raffle {
     address public raffleWinner;
     bytes32 public randomNumQueryId;
 
+    mapping (address => uint256[]) public buyerTickets;
     DrawRandomNumber public drawRandomNumber;
 
     event LogTicketsPurchased(address indexed buyer, uint256 numberOfTickets, uint256 price, uint256 timestamp);
@@ -80,6 +81,7 @@ contract Raffle {
 
         for (uint256 i; i < numberOfTickets; i++) {
             ticketHolders.push(msg.sender);
+            buyerTickets[msg.sender].push(ticketHolders.length);
         }
 
         emit LogTicketsPurchased(msg.sender, numberOfTickets, msg.value, now);
@@ -94,6 +96,10 @@ contract Raffle {
 
     function ticketsSold() public view returns(uint256) {
         return ticketHolders.length;
+    }
+
+    function ticketsPurchasesBy(address buyer) public view returns(uint256[]) {
+        return buyerTickets[buyer];
     }
 
     function allTicketHolders() public view returns(address[]) {

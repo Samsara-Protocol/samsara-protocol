@@ -146,6 +146,30 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
             tickets.should.be.bignumber.equal(1);
         });
 
+        it("saves users' ticket number", async () => {
+            await increaseTimeTo(latestTime() + duration.seconds(50));
+
+            await raffle.purchaseTickets(1, {
+                value: ticketPrice,
+                from: buyer1
+            });
+
+            await raffle.purchaseTickets(1, {
+                value: ticketPrice,
+                from: buyer2
+            });
+
+            await raffle.purchaseTickets(1, {
+                value: ticketPrice,
+                from: buyer1
+            });
+
+            const tickets = await raffle.ticketsPurchasesBy(buyer1);
+            const tickets2 = await raffle.ticketsPurchasesBy(buyer2);
+            tickets.toString().should.be.equal('1,3');
+            tickets2.toString().should.be.equal('2');
+        });
+
         it('allows user to buy multiple ticket', async () => {
             await increaseTimeTo(latestTime() + duration.seconds(50));
 

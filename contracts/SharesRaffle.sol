@@ -28,6 +28,8 @@ contract SharesRaffle {
 
     DrawRandomNumber public drawRandomNumber;
 
+    event LogWinner(address indexed winnerAddress, string typeOfWinning, uint256 timestamp);
+
     constructor
         (
             uint256 _openTime,
@@ -95,6 +97,7 @@ contract SharesRaffle {
         require(raffleWinner == address(0));
 
         raffleWinner = findWinner(winningNumber);
+        emit LogWinner(raffleWinner, "Main Prize", now);
         isFinalized = true;
     }
 
