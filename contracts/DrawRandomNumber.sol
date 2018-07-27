@@ -1,7 +1,8 @@
 pragma solidity 0.4.23;
 
 import "./OraclizeAPI.sol";
-import "./Raffle.sol";
+import "./RaffleInterface.sol";
+import "./DrawRandomNumberInterface.sol";
 
 
 contract DrawRandomNumber is usingOraclize {
@@ -18,25 +19,7 @@ contract DrawRandomNumber is usingOraclize {
 
     mapping (bytes32 => Data) public raffleData;
 
-    // the callback function is called by Oraclize when the result is ready
-    // the oraclize_randomDS_proofVerify modifier prevents an invalid proof to execute this function code:
-    // the proof validity is fully verified on-chain
-    function __callback(bytes32 _queryId, string _result, bytes _proof) public
-    {
-        require(msg.sender == oraclize_cbAddress() && raffleData[_queryId].isValid);
-
-        // this is an efficient way to get the uint out in the [0, maxRange) range
-        uint256 randomNumber = uint(keccak256(_result)) % raffleData[_queryId].maxRange;
-
-        NewRandomNumberBytes(bytes(_result)); // this is the resulting random number (bytes)
-        NewRandomNumberUint(randomNumber); // this is the resulting random number (uint)
-        LogProof(_proof);
-
-        raffleData[_queryId].randomNumber = randomNumber;
-        Raffle(raffleData[_queryId].raffleContractAddress).setWinnerAndFinalize(randomNumber);
-    }
-
-    function generateRandomNum(uint256 _maxRange, address _raffleContractAddress) public payable returns(bytes32) {
+    function generateRandomNum(uint256 _maxRange, address _raffleContractAddress) external payable returns(bytes32) {
         oraclize_setProof(proofType_Ledger); // sets the Ledger authenticity proof
         uint n = 4; // number of random bytes we want the datasource to return
         uint delay = 0; // number of seconds to wait before the execution takes place
@@ -50,5 +33,23 @@ contract DrawRandomNumber is usingOraclize {
         raffleData[queryId].isValid = true;
 
         return queryId;
+    }
+
+    // the callback function is called by Oraclize when the result is ready
+    // the oraclize_randomDS_proofVerify modifier prevents an invalid proof to execute this function code:
+    // the proof validity is fully verified on-chain
+    function __callback(bytes32 _queryId, string _result, bytes _proof) public
+    {
+        require(msg.sender == oraclize_cbAddress() && raffleData[_queryId].isValid);
+
+        // this is an efficient way to get the uint out in the [0, maxRange) range
+        uint256 randomNumber = uint(keccak256(_result)) % raffleData[_queryId].maxRange;
+
+        emit NewRandomNumberBytes(bytes(_result)); // this is the resulting random number (bytes)
+        emit NewRandomNumberUint(randomNumber); // this is the resulting random number (uint)
+        emit LogProof(_proof);
+
+        raffleData[_queryId].randomNumber = randomNumber;
+        RaffleInterface(raffleData[_queryId].raffleContractAddress).setWinnerAndFinalize(randomNumber);
     }
 }

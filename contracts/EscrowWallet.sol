@@ -27,7 +27,7 @@ contract EscrowWallet {
     uint public required;
 
     modifier enoughBalance(uint value) {
-        require(value <= this.balance);
+        require(value <= address(this).balance);
         _;
     }
 
@@ -75,18 +75,9 @@ contract EscrowWallet {
         _;
     }
 
-    /// @dev Fallback function allows to deposit ether.
-    function()
+    constructor(address[] _owners, uint _required)
     public
-    payable
-    {
-        if (msg.value > 0)
-            Deposit(msg.sender, msg.value);
-    }
-
-    function EscrowWallet(address[] _owners, uint _required)
-        public
-        validRequirement(_owners.length, _required)
+    validRequirement(_owners.length, _required)
     {
         for (uint i=0; i < _owners.length; i++) {
             require(!isOwner[_owners[i]] && _owners[i] != 0);
@@ -94,6 +85,15 @@ contract EscrowWallet {
         }
         owners = _owners;
         required = _required;
+    }
+
+    /// @dev Fallback function allows to deposit ether.
+    function()
+    public
+    payable
+    {
+        if (msg.value > 0)
+            emit Deposit(msg.sender, msg.value);
     }
 
     /// @dev Allows to add a new owner. Transaction has to be sent by wallet.
@@ -107,7 +107,7 @@ contract EscrowWallet {
     {
         isOwner[owner] = true;
         owners.push(owner);
-        OwnerAddition(owner);
+        emit OwnerAddition(owner);
     }
 
     /// @dev Allows an owner to confirm the transaction.
@@ -117,7 +117,7 @@ contract EscrowWallet {
         notConfirmed(msg.sender)
     {
         confirmations[msg.sender] = true;
-        Confirmation(msg.sender);
+        emit Confirmation(msg.sender);
         executeTransaction();
     }
 
@@ -132,9 +132,9 @@ contract EscrowWallet {
         if (isConfirmedByRequired()) {
             transaction.executed = true;
             if (transaction.destination.call.value(transaction.value)(transaction.data))
-                Execution();
+                emit Execution();
             else {
-                ExecutionFailure();
+                emit ExecutionFailure();
                 transaction.executed = false;
             }
         }

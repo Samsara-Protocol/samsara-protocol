@@ -1,7 +1,8 @@
 pragma solidity 0.4.23;
 
 import "./SafeMath.sol";
-import "./DrawRandomNumber.sol";
+import "./DrawRandomNumberInterface.sol";
+import "./RaffleInterface.sol";
 
 
 // @dev Raffle smart contract - contains all business logic
@@ -20,7 +21,7 @@ contract Raffle {
     bytes32 public randomNumQueryId;
 
     mapping (address => uint256[]) public buyerTickets;
-    DrawRandomNumber public drawRandomNumber;
+    DrawRandomNumberInterface public drawRandomNumber;
 
     event LogTicketsPurchased(address indexed buyer, uint256 numberOfTickets, uint256 price, uint256 timestamp);
     event LogWinner(address indexed winnerAddress, string typeOfWinning, uint256 timestamp);
@@ -52,7 +53,7 @@ contract Raffle {
         goal = _goal;
         escrowWallet = _escrowWallet;
 
-        drawRandomNumber = DrawRandomNumber(_drawRandomNumber);
+        drawRandomNumber = DrawRandomNumberInterface(_drawRandomNumber);
     }
 
     modifier withinRafflePeriod() {
@@ -71,8 +72,25 @@ contract Raffle {
         _;
     }
 
+    function setWinnerAndFinalize(uint256 randomNumber)
+        external
+        onlyDrawRandomNumberContract
+    {
+        require(raffleWinner == address(0));
+
+        // random number returns between 0 and ticketsSold - 1
+        raffleWinner = ticketHolders[randomNumber];
+        emit LogWinner(raffleWinner, "Main Prize", now);
+        isFinalized = true;
+    }
+
+    function requestRandomNumber() external isElegibleToBeFinalized {
+        if (ticketsSold() > 0)
+            randomNumQueryId = drawRandomNumber.generateRandomNum(ticketsSold(), this);
+    }
+
     function purchaseTickets(uint256 numberOfTickets)
-        public
+        external
         withinRafflePeriod
         payable
     {
@@ -90,6 +108,14 @@ contract Raffle {
         escrowWallet.transfer(msg.value);
     }
 
+    function ticketsPurchasesBy(address buyer) external view returns(uint256[]) {
+        return buyerTickets[buyer];
+    }
+
+    function allTicketHolders() external view returns(address[]) {
+        return ticketHolders;
+    }
+
     function weiRaised() public view returns(uint256) {
         return ticketHolders.length.mul(ticketPrice);
     }
@@ -97,30 +123,4 @@ contract Raffle {
     function ticketsSold() public view returns(uint256) {
         return ticketHolders.length;
     }
-
-    function ticketsPurchasesBy(address buyer) public view returns(uint256[]) {
-        return buyerTickets[buyer];
-    }
-
-    function allTicketHolders() public view returns(address[]) {
-        return ticketHolders;
-    }
-
-    function setWinnerAndFinalize(uint256 randomNumber)
-        public
-        onlyDrawRandomNumberContract
-    {
-        require(raffleWinner == address(0));
-
-        // random number returns between 0 and ticketsSold - 1
-        raffleWinner = ticketHolders[randomNumber];
-        emit LogWinner(raffleWinner, "Main Prize", now);
-        isFinalized = true;
-    }
-
-    function requestRandomNumber() public isElegibleToBeFinalized {
-        if (ticketsSold() > 0)
-            randomNumQueryId = drawRandomNumber.generateRandomNum(ticketsSold(), this);
-    }
-
 }
