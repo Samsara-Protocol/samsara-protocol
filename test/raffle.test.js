@@ -7,7 +7,7 @@ const { latestTime, duration, increaseTimeTo } = require('./helpers/timer');
 
 const BigNumber = web3.BigNumber;
 
-contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
+contract('Raffle', function([_, buyer1, buyer2, escrowWallet]) {
     const ticketPrice = new BigNumber(100);
     const goal = new BigNumber(100e18);
 
