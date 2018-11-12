@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# modified from https://github.com/OpenZeppelin/zeppelin-solidity/blob/master/scripts/test.sh
 
 # Exit script as soon as a command fails.
 set -o errexit
@@ -8,23 +7,23 @@ set -o errexit
 trap cleanup EXIT
 
 cleanup() {
-  # Kill the ganache_cli instance that we started (if we started one and if it's still running).
-  if [ -n "$ganache_cli_pid" ] && ps -p $ganache_cli_pid > /dev/null; then
-    kill -9 $ganache_cli_pid
+  # Kill the ganache instance that we started (if we started one and if it's still running).
+  if [ -n "$ganache_pid" ] && ps -p $ganache_pid > /dev/null; then
+    kill -9 $ganache_pid
   fi
 }
 
 if [ "$SOLIDITY_COVERAGE" = true ]; then
-  ganache_cli_port=8555
+  ganache_port=8555
 else
-  ganache_cli_port=8545
+  ganache_port=8545
 fi
 
-ganache_cli_running() {
-  nc -z localhost "$ganache_cli_port"
+ganache_running() {
+  nc -z localhost "$ganache_port"
 }
 
-start_ganache_cli() {
+start_ganache() {
   # We define 20 accounts with balance 1M ether, needed for high-value tests.
   local accounts=(
     --account="0xee4e871def4e297da77f99d57de26000e86077528847341bc637d2543f8db6e2, 1000000000000000000000000"
@@ -50,27 +49,27 @@ start_ganache_cli() {
   )
 
   if [ "$SOLIDITY_COVERAGE" = true ]; then
-    ganache-cli-sc --gasLimit 0xfffffffffff --port "$ganache_cli_port" "${accounts[@]}" > /dev/null &
-  else
-    ganache-cli --gasLimit 0xfffffffffff "${accounts[@]}" > /dev/null &
-  fi
+     node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff --port "$ganache_port" "${accounts[@]}" > /dev/null &
+   else
+     node_modules/.bin/ganache-cli --gasLimit 0xfffffffffff "${accounts[@]}" > /dev/null &
+   fi
 
-  ganache_cli_pid=$!
-}
+   ganache_pid=$!
+ }
 
-if ganache_cli_running; then
-  echo "Using existing ganache-cli instance"
-else
-  echo "Starting our own ganache-cli instance"
-  start_ganache_cli
-fi
+ if ganache_running; then
+   echo "Using existing ganache instance"
+ else
+   echo "Starting our own ganache instance"
+   start_ganache
+ fi
 
-if [ "$SOLIDITY_COVERAGE" = true ]; then
-  solidity-coverage
+ if [ "$SOLIDITY_COVERAGE" = true ]; then
+   node_modules/.bin/solidity-coverage
 
-  if [ "$CONTINUOUS_INTEGRATION" = true ]; then
-    cat coverage/lcov.info | coveralls
-  fi
-else
-  truffle test "$@"
-fi
+   if [ "$CONTINUOUS_INTEGRATION" = true ]; then
+     cat coverage/lcov.info | node_modules/.bin/coveralls
+   fi
+ else
+   node_modules/.bin/truffle test "$@"
+ fi
